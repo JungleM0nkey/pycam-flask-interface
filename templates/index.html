@@ -18,7 +18,7 @@
                 $('#capture-row').on('click', '.gallery-thumbnail', function(event){
                     selectcapture(this)
                 });
-                //hover events
+                //thumbnail hover events
                 $('#capture-row').on('mouseenter', '.gallery-thumbnail', function(event){
                     thumbnail_image = $(this).find('.thumbnail-image');
                     thumbnail_image.removeClass('deselected-thumbnail');
@@ -46,8 +46,8 @@
                 <div class="col"></div>
                 <div class="col">
                     <h1>PyCam Index</h1>
-                    <img id="new-capture" src="{{ url_for('static', filename='images/captures/'+new_capture) }}"></img>
-                    <p id="new-capture-date">{{ new_capture_date }}</p>
+                    <img id="selected-capture" src="{{ url_for('static', filename='images/captures/'+new_capture) }}"></img>
+                    <p id="selected-capture-date">{{ new_capture_date }}</p>
                 </div>
                 <div class="col"></div>
             </div>

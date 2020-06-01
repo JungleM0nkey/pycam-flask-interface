@@ -8,12 +8,12 @@ body{
 }
 
 
-#new-capture{
+#selected-capture{
     width:800px;
     height:auto;
 }
 
-#new-capture-date{
+#selected-capture-date{
     float:right;
 }
 
