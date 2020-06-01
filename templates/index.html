@@ -1,0 +1,71 @@
+<html>
+    <head>
+        <title>PyCam Index</title>
+        <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta content="utf-8" http-equiv="encoding">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.js"></script>
+        <script type="text/javascript" src="{{url_for('static', filename='js/index.js')}}"></script>
+        <script type="text/javascript">
+            $(document).ready(function(){ 
+                //select latest capture thumbnail
+                latest_capture = $('.gallery-thumbnail:last-child')
+                selectcapture(latest_capture)
+                $('#capture-row').scrollLeft($('#capture-row').width());
+                //select on click
+                $('#capture-row').on('click', '.gallery-thumbnail', function(event){
+                    selectcapture(this)
+                });
+                //hover events
+                $('#capture-row').on('mouseenter', '.gallery-thumbnail', function(event){
+                    thumbnail_image = $(this).find('.thumbnail-image');
+                    thumbnail_image.removeClass('deselected-thumbnail');
+                    thumbnail_image.addClass('hovering-thumbnail');
+                });
+                $('#capture-row').on('mouseleave', '.gallery-thumbnail', function(event){
+                    thumbnail_image = $(this).find('.thumbnail-image');
+                    thumbnail_image.removeClass('hovering-thumbnail');
+                    if(!thumbnail_image.hasClass('selected-thumbnail')){
+                        thumbnail_image.addClass('deselected-thumbnail');
+                    }
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <!--
+        <header class="page-header header container-fluid vertical-center">
+            <div class="row justify-content-center">
+            </div>
+        </header>
+        -->
+        <div id="main-wrapper" class="container">
+            <div class="row row-eq-height">
+                <div class="col"></div>
+                <div class="col">
+                    <h1>PyCam Index</h1>
+                    <img id="new-capture" src="{{ url_for('static', filename='images/captures/'+new_capture) }}"></img>
+                    <p id="new-capture-date">{{ new_capture_date }}</p>
+                </div>
+                <div class="col"></div>
+            </div>
+            <div class="row row-eq-height">
+                <div class="col"></div>
+                <div class="col">
+                    <div id="capture-row">
+                        {% for capture in capture_objects  %}
+                        <div class="gallery-thumbnail">
+                            <img class="thumbnail-image deselected-thumbnail" src="{{ url_for('static', filename='images/captures/'+capture.filename) }}"></img>
+                            <span class="thumbnail-date">{{ capture.date }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col"></div>
+            </div>
+        </div>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    </body>
+</html>
