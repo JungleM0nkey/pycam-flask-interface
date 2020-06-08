@@ -6,5 +6,7 @@ function selectcapture(gallery_thumbnail){
     thumbnail_image.removeClass('deselected-thumbnail');
     thumbnail_image.addClass('selected-thumbnail');
     thumbnail_src = thumbnail_image.attr('src');
-    $('#selected-capture').attr('src',thumbnail_src)
+    thumbnail_date = thumbnail_image.attr('id')
+    $('#selected-capture').attr('src',thumbnail_src) //change selected image source
+    $('#selected-capture-date').text(`${thumbnail_date}`) //change date under selected image
 }

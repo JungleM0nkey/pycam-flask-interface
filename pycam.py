@@ -1,5 +1,5 @@
 #!/usr/bin/python3.8
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for, redirect, session
 from picamera import PiCamera
 import time
 from flask_sqlalchemy import SQLAlchemy
@@ -39,22 +39,47 @@ def updatedb(new_capture, new_capture_date):
     db.session.add(new_image)
     db.session.commit()
 
-def getcaptures(num):
-    #returns the last x amount of Images, sorted by Descending Image ID
-    capture_objects = Image.query.order_by(Image.id.desc()).limit(num).all() 
+def getcaptures(day):
+    #capture_objects = Image.query.order_by(Image.id.desc()).limit(num).all() #returns the last x amount of Images, sorted by Descending Image ID
+    capture_objects = Image.query.filter(Image.date.contains(day)).order_by(Image.id.desc()).all()
     #reverse list for web order
     capture_objects.reverse()
     return capture_objects
 
+def unique(sequence):
+    seen = set()
+    return [x for x in sequence if not (x in seen or seen.add(x))]
+
+def getdays():
+    capture_objects = Image.query.all() 
+    capture_dates = [ x.date for x in  capture_objects ]
+    capture_days = [ x.split(' ')[0:4] for x in capture_dates ]
+    capture_days = [ ' '.join(x) for x in capture_days ]
+    capture_days = [ x[0:10] for x in capture_days ]
+    capture_days = unique(capture_days)
+    capture_days.reverse()
+    return capture_days
+
 #routes
-@app.route('/')
-def index():
+@app.route('/', methods=['GET'])
+def root():
     #get new capture and new capture info
     new_capture, new_capture_path, new_capture_date = capture()
     #update db with new capture info
     updatedb(new_capture, new_capture_date) 
-    capture_objects = getcaptures(7)
-    return render_template('index.html', new_capture=new_capture, new_capture_date=new_capture_date, capture_objects=capture_objects)
+    capture_days = getdays()
+    latest_day = capture_days[0]
+    day=latest_day.replace(' ', '_')
+    #save all the data to a session
+    session['data'] = (new_capture, new_capture_date, capture_days)
+    next_page = url_for('index', day=day)
+    return redirect(next_page)
+
+@app.route('/index/<day>', methods=['GET','POST'])
+def index(day):
+    new_capture, new_capture_date, capture_days = session['data']
+    capture_objects = getcaptures(day.replace('_', ' '))
+    return render_template('index.html', new_capture=new_capture, new_capture_date=new_capture_date, capture_days=capture_days, capture_objects=capture_objects)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')

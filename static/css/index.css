@@ -7,6 +7,10 @@ body{
     background-image:url('../images/bg.png');
 }
 
+#selected-capture-container{
+    width:800px;
+    height:533.333px;
+}
 
 #selected-capture{
     width:800px;
@@ -32,6 +36,7 @@ body{
     width:155px;
     text-align: center;
 }
+
 .gallery-thumbnail:hover{
     cursor: pointer;
 }
@@ -62,4 +67,19 @@ body{
 .thumbnail-date{
     font-size:11px;
     display: block;
+}
+
+#archive-column{
+    /*padding:0px;*/
+}
+
+#archive-column h1{
+    color:rgba(0, 0, 0, 0.431);
+}
+
+#archive-row{
+    /*width:800px;
+    height:500px;*/
+    overflow-y:scroll;
+    height:533.333px;
 }
