@@ -1,10 +1,11 @@
 #!/usr/bin/python3.8
-from flask import Flask, render_template, url_for, redirect, session
+from flask import Flask, render_template, url_for, redirect, session, request, Response
 from picamera import PiCamera
 import time
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from config import Config
+from forms import SettingsForm
 import os
 import sys
 
@@ -12,13 +13,14 @@ import sys
 #flask config
 app = Flask(__name__)
 camera = PiCamera()
+#camera.rotation = 180 #fixes the images being upsidedown
 app.config.from_object(Config)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
 import models #this is needed to be here able to import $db into models.py
-from models import Image
+from models import Image, Settings
 
 
 #functions
@@ -30,8 +32,8 @@ def capture():
     filename = f'capture_{date}.jpg'
     filepath = f'/home/pi/pycam/static/images/captures/{filename}'
     camera.capture(filepath)
-    return (filename, filepath, original_date)
     #camera.close()
+    return (filename, filepath, original_date)
     #camera.stop_preview()
 
 def updatedb(new_capture, new_capture_date):
@@ -60,9 +62,28 @@ def getdays():
     capture_days.reverse()
     return capture_days
 
+def getsettings():
+    settings = Settings.query.first()
+    #check if no settings are set 
+    if not settings:
+        print('Settings are missing, setting defaults')
+        default_settings = Settings(res_x=1920,res_y=1080,rotation=180,effect='none')
+        db.session.add(default_settings)
+        db.session.commit()
+    settings = Settings.query.first()
+    return (settings.res_x, settings.res_y, settings.rotation, settings.effect)
+
+def applycamettings(res_x, res_y, rotation, effect):
+    camera.resolution = (res_x, res_y)
+    camera.rotation = rotation
+    camera.image_effect = effect
+
 #routes
 @app.route('/', methods=['GET'])
 def root():
+    #get settings for camera and apply them
+    res_x, res_y, rotation, effect = getsettings()
+    applycamettings(res_x, res_y, rotation, effect)
     #get new capture and new capture info
     new_capture, new_capture_path, new_capture_date = capture()
     #update db with new capture info
@@ -71,15 +92,87 @@ def root():
     latest_day = capture_days[0]
     day=latest_day.replace(' ', '_')
     #save all the data to a session
-    session['data'] = (new_capture, new_capture_date, capture_days)
+    session['data'] = (new_capture, new_capture_date, capture_days, res_x, res_y, rotation, effect)
     next_page = url_for('index', day=day)
     return redirect(next_page)
 
 @app.route('/index/<day>', methods=['GET','POST'])
 def index(day):
-    new_capture, new_capture_date, capture_days = session['data']
+    form = SettingsForm()
+    new_capture, new_capture_date, capture_days, res_x, res_y, rotation, effect = session['data']
+    #this is the only way to set default values for select form inputs
+    form.res_x.default = res_x
+    form.res_y.default = res_y
+    form.rotation.default = rotation
+    form.effect.default = effect
+    form.process()
     capture_objects = getcaptures(day.replace('_', ' '))
-    return render_template('index.html', new_capture=new_capture, new_capture_date=new_capture_date, capture_days=capture_days, capture_objects=capture_objects)
+    return render_template('index.html',form=form, 
+                                        new_capture=new_capture, 
+                                        new_capture_date=new_capture_date, 
+                                        capture_days=capture_days, 
+                                        capture_objects=capture_objects,
+                                        res_x = res_x,
+                                        res_y = res_y,
+                                        rotation = rotation,
+                                        effect = effect,
+                                        )
+
+
+                
+
+@app.route('/savesettings', methods=['POST'])
+def savesettings():
+    #grab values from frontend
+    res_x = int(request.form['res_x'])
+    res_y = int(request.form['res_y'])
+    rotation = int(request.form['rotation'])
+    effect = str(request.form['effect'])
+    #apply and save
+    try:
+        existing_settings = Settings.query.first()
+        existing_settings.res_x = res_x
+        existing_settings.res_y = res_y
+        existing_settings.rotation = rotation
+        existing_settings.effect = effect
+        applycamettings(res_x, res_y, rotation, effect) #apply the settings
+        db.session.commit() #save the settings
+        return u'Settings saved', 200
+    except Exception as e:
+        print(e)
+        return f'Settings not saved: {e}', 500
+
+class VideoCamera(object):
+    def __init__(self):
+        self.frames = [open(f + '.jpg', 'rb').read() for f in ['image1']]
+
+    def get_frame(self):
+        return self.frames[0]
+
+
+def gen():
+    #get settings for camera and apply them
+    res_x, res_y, rotation, effect = getsettings()
+    applycamettings(res_x, res_y, rotation, effect)
+    camera.start_preview()
+    while True:
+        videocamera = VideoCamera()
+        #create images
+        for i, filename in enumerate(camera.capture_continuous('image{counter}.jpg')):
+            #print(f'{filename} has been taken')
+            #time.sleep(0.1)
+            frame = videocamera.get_frame()
+            yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            if i > 1:
+                #camera.stop_preview()
+                break
+        
+
+@app.route('/stream', methods=['GET','POST'])
+def stream():
+    return Response(gen(), mimetype='multipart/x-mixed-replace; boundary=frame' )
+    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')

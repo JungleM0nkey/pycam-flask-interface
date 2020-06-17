@@ -4,17 +4,41 @@
         <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta content="utf-8" http-equiv="encoding">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
         <script type="text/javascript" src="{{url_for('static', filename='js/index.js')}}"></script>
         <script type="text/javascript">
             $(document).ready(function(){ 
+                //on load change theme from value inside cookie
+                theme = gettheme()
+                changetheme(theme)
+                //on change theme button click
+                $('#change-theme').on('click', function(){
+                    theme = gettheme() //get existing theme
+                    if (theme == 'light'){ //pick the opposite of the existing theme
+                        theme = 'dark'
+                    }else if (theme =='dark'){
+                        theme = 'light'
+                    }
+                    changetheme(theme) 
+                });
+                //open live stream on button click
+                $('#open-stream').on('click', function(){
+                    //remove selected outline from the gallery thumbnail
+                    $('.selected-thumbnail').addClass('deselected-thumbnail');
+                    $('.selected-thumbnail').removeClass('selected-thumbnail');
+                    //make the live stream button red
+                    $('.fa-video').css('color', 'red')
+                    $('#selected-capture').attr('src',`{{ url_for('stream') }}`) //change selected image source
+                    $('#selected-capture-date').text(`Live Stream`) //change date under selected image
+                });
                 //select latest capture thumbnail
                 latest_capture = $('.gallery-thumbnail:last-child')
                 selectcapture(latest_capture)
                 maxScroll = document.getElementById('capture-row').scrollWidth - document.getElementById('capture-row').clientWidth
-                console.log(maxScroll)
                 $('#capture-row').scrollLeft(maxScroll);
                 //select on click
                 $('#capture-row').on('click', '.gallery-thumbnail', function(event){
@@ -33,10 +57,22 @@
                         thumbnail_image.addClass('deselected-thumbnail');
                     }
                 });
-                //archive column date selection
-                $('#archive-row').on('click', '#archive-date', function(event){
-                    //archive_date = $(this).text()
-                    //console.log('Selecting archive from date: '+archive_date)
+                //save settings
+                $('#save-settings').on('click', function(){
+                    res_x = $('#settings_res_x').val()
+                    res_y = $('#settings_res_y').val()
+                    rotation = $('#settings_rotation').val()
+                    effect = $('#settings_effect').val()
+                    $.post('/savesettings', {'res_x':res_x,'res_y':res_y,'rotation':rotation,'effect':effect
+                    }).done(function(response){
+                        console.log(response)
+                    }).fail(function(response){
+                        console.log(response)
+                    });
+                });
+                //reload page on pycam index click
+                $('#index-title').on('click', function(){
+                    window.location.href = '/'
                 });
             });
         </script>
@@ -50,27 +86,44 @@
         -->
         <div id="main-wrapper" class="container">
             <div class="row row-eq-height">
-                <div id="archive-column" class="col">
-                    <h1>Archive</h1>
-                    <div id="archive-row">
+                <div id="archive-column" class="col-lg-2">
+                    <h1 id="archive-title">Archive</h1>
+                    <div id="archive-wrapper">
                         {% for day in capture_days  %}
                             {% set day_link = day|replace(" ", "_")  %}
                             <a id="archive-date" href='{{ day_link }}'>{{ day }}</a><br>
                         {% endfor %}
                     </div>
                 </div>
-                <div class="col">
-                    <h1>PyCam Index</h1>
-                    <div id="selected-capture-container">
+                <div class="col-lg-8">
+                    <h1 id="index-title">PyCam Index</h1>
+                    <i id="change-theme" class="fas fa-adjust"></i>
+                    <i id="open-stream" class="fas fa-video"></i>
+                    <!--<div id="selected-capture-container">
                         <img id="selected-capture" src="{{ url_for('static', filename='images/captures/'+new_capture) }}"></img>
-                    </div>
+                    </div>-->
+                    <img id="selected-capture" src="{{ url_for('static', filename='images/captures/'+new_capture) }}"></img>
                     <p id="selected-capture-date">{{ new_capture_date }}</p>
+                    <!--<img id="selected-capture" src="{{ url_for('stream') }}"></img>-->
                 </div>
-                <div class="col"></div>
+                <div id="settings-column" class="col-lg-2">
+                    <h1 id="settings-title">Settings</h1>
+                    <div id="settings-wrapper">
+                       <p> {{ form.res_x.label }}
+                        {{ form.res_x }}</p>
+                        <p> {{ form.res_y.label }}
+                        {{ form.res_y }}</p> 
+                        <p> {{ form.rotation.label }}
+                        {{ form.rotation }}</p>
+                        <p> {{ form.effect.label }}
+                        {{ form.effect }}</p>
+                        {{ form.save }}
+                    </div>
+                </div>
             </div>
             <div class="row row-eq-height">
-                <div class="col"></div>
-                <div class="col">
+                <div class="col-lg-2"></div>
+                <div class="col-lg-8">
                     <div id="capture-row">
                         {% for capture in capture_objects  %}
                         <div class="gallery-thumbnail">
@@ -80,8 +133,9 @@
                         {% endfor %}
                     </div>
                 </div>
-                <div class="col"></div>
+                <div class="col-lg-2"></div>
             </div>
+            
             <!--<div class="row row-eq-height">
                 <div class="col"></div>
                 <div class="col">
