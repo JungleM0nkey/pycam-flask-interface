@@ -12,9 +12,6 @@
         <script type="text/javascript" src="{{url_for('static', filename='js/index.js')}}"></script>
         <script type="text/javascript">
             $(document).ready(function(){ 
-                //on load change theme from value inside cookie
-                theme = gettheme()
-                changetheme(theme)
                 //on change theme button click
                 $('#change-theme').on('click', function(){
                     theme = gettheme() //get existing theme
@@ -27,11 +24,14 @@
                 });
                 //open live stream on button click
                 $('#open-stream').on('click', function(){
+                    console.log('Opening Live Stream');
                     //remove selected outline from the gallery thumbnail
                     $('.selected-thumbnail').addClass('deselected-thumbnail');
                     $('.selected-thumbnail').removeClass('selected-thumbnail');
                     //make the live stream button red
-                    $('.fa-video').css('color', 'red')
+                    $('.fa-video').css('color', 'red');
+                    //hides the loading bar if it exists
+                    $('.lds-ring').remove(); 
                     $('#selected-capture').attr('src',`{{ url_for('stream') }}`) //change selected image source
                     $('#selected-capture-date').text(`Live Stream`) //change date under selected image
                 });
@@ -63,9 +63,30 @@
                     res_y = $('#settings_res_y').val()
                     rotation = $('#settings_rotation').val()
                     effect = $('#settings_effect').val()
+                    //check if live stream is playing and pause it
+                    if($('#selected-capture-date').text() == 'Live Stream'){
+                        height = $('#selected-capture').height()
+                        width = $('#selected-capture').width()
+                        $('#selected-capture').attr('src', ``)
+                        $('#open-stream').after(`<div class="lds-ring"><div></div><div></div><div></div><div></div></div>`)
+                        $('.lds-ring').css('height', height)
+                        $('.lds-ring').css('width', width)
+                    }
                     $.post('/savesettings', {'res_x':res_x,'res_y':res_y,'rotation':rotation,'effect':effect
                     }).done(function(response){
                         console.log(response)
+                        //check if live stream was playing and turn it back on if it was
+                        if($('#selected-capture-date').text() == 'Live Stream'){
+                            //freeze on last frame
+                            //waiting 2 seconds and reopening stream
+                            setTimeout(function(){
+                                $('#open-stream').trigger('click');
+                            },1000);
+                        }else{
+                            console.log('Reopening to main page')
+                            //reload the page with the new settings
+                            window.location.href = '/'
+                        }
                     }).fail(function(response){
                         console.log(response)
                     });
@@ -74,6 +95,9 @@
                 $('#index-title').on('click', function(){
                     window.location.href = '/'
                 });
+                //on load change theme from value inside cookie
+                theme = gettheme()
+                changetheme(theme)
             });
         </script>
     </head>

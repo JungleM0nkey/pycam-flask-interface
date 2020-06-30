@@ -12,7 +12,7 @@ import sys
 
 #flask config
 app = Flask(__name__)
-camera = PiCamera()
+#camera = PiCamera()
 #camera.rotation = 180 #fixes the images being upsidedown
 app.config.from_object(Config)
 db = SQLAlchemy(app)
@@ -22,6 +22,12 @@ migrate = Migrate(app, db)
 import models #this is needed to be here able to import $db into models.py
 from models import Image, Settings
 
+class VideoCamera(object):
+    def __init__(self):
+        self.frames = [open(f + '.jpg', 'rb').read() for f in ['/home/pi/pycam/static/images/stream/image1']]
+
+    def get_frame(self):
+        return self.frames[0]
 
 #functions
 def capture():
@@ -31,8 +37,11 @@ def capture():
     date = original_date.replace(' ', '_').replace(':','_')
     filename = f'capture_{date}.jpg'
     filepath = f'/home/pi/pycam/static/images/captures/{filename}'
-    camera.capture(filepath)
-    #camera.close()
+    with PiCamera() as camera: 
+        #get settings for camera and apply them
+        res_x, res_y, rotation, effect = getsettings()
+        applycamsettings(camera, res_x, res_y, rotation, effect)
+        camera.capture(filepath)
     return (filename, filepath, original_date)
     #camera.stop_preview()
 
@@ -73,17 +82,43 @@ def getsettings():
     settings = Settings.query.first()
     return (settings.res_x, settings.res_y, settings.rotation, settings.effect)
 
-def applycamettings(res_x, res_y, rotation, effect):
+#applies new camera settings
+def applycamsettings(camera, res_x, res_y, rotation, effect):
+    if camera.previewing:
+        print('Camera previewing. Stopping camera.')
+        camera.stop_preview()
+        #camera.close()
+        #print(camera.previewing)
+    print(f'Applying settings to camera. Resolution: {res_x}x{res_y}, Rotation: {rotation}, Effect: {effect}')
     camera.resolution = (res_x, res_y)
+    print('Resolution set')
     camera.rotation = rotation
+    print('Rotation set')
     camera.image_effect = effect
+    print('Effect set')
+
+def gen():
+    with PiCamera() as camera:
+        #get settings for camera and apply them
+        res_x, res_y, rotation, effect = getsettings()
+        applycamsettings(camera, res_x, res_y, rotation, effect)
+        camera.start_preview()
+        while camera.previewing:
+            print('Running gen function')
+            #videocamera = VideoCamera() #gets the last created image
+            #create images
+            for i, filename in enumerate(camera.capture_continuous('/home/pi/pycam/static/images/stream/image1.jpg')):
+                #send image
+                #frame = videocamera.get_frame() 
+                frame = open('/home/pi/pycam/static/images/stream/image1.jpg', 'rb').read()
+                yield (b'--frame\r\n'
+                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                if i >= 0:
+                    break
 
 #routes
 @app.route('/', methods=['GET'])
 def root():
-    #get settings for camera and apply them
-    res_x, res_y, rotation, effect = getsettings()
-    applycamettings(res_x, res_y, rotation, effect)
     #get new capture and new capture info
     new_capture, new_capture_path, new_capture_date = capture()
     #update db with new capture info
@@ -92,14 +127,15 @@ def root():
     latest_day = capture_days[0]
     day=latest_day.replace(' ', '_')
     #save all the data to a session
-    session['data'] = (new_capture, new_capture_date, capture_days, res_x, res_y, rotation, effect)
+    session['data'] = (new_capture, new_capture_date, capture_days)
     next_page = url_for('index', day=day)
     return redirect(next_page)
 
 @app.route('/index/<day>', methods=['GET','POST'])
 def index(day):
     form = SettingsForm()
-    new_capture, new_capture_date, capture_days, res_x, res_y, rotation, effect = session['data']
+    new_capture, new_capture_date, capture_days = session['data']
+    res_x, res_y, rotation, effect = getsettings()
     #this is the only way to set default values for select form inputs
     form.res_x.default = res_x
     form.res_y.default = res_y
@@ -116,10 +152,7 @@ def index(day):
                                         res_y = res_y,
                                         rotation = rotation,
                                         effect = effect,
-                                        )
-
-
-                
+                                        )        
 
 @app.route('/savesettings', methods=['POST'])
 def savesettings():
@@ -135,39 +168,12 @@ def savesettings():
         existing_settings.res_y = res_y
         existing_settings.rotation = rotation
         existing_settings.effect = effect
-        applycamettings(res_x, res_y, rotation, effect) #apply the settings
+        #applycamsettings(res_x, res_y, rotation, effect) #apply the settings
         db.session.commit() #save the settings
         return u'Settings saved', 200
     except Exception as e:
         print(e)
         return f'Settings not saved: {e}', 500
-
-class VideoCamera(object):
-    def __init__(self):
-        self.frames = [open(f + '.jpg', 'rb').read() for f in ['image1']]
-
-    def get_frame(self):
-        return self.frames[0]
-
-
-def gen():
-    #get settings for camera and apply them
-    res_x, res_y, rotation, effect = getsettings()
-    applycamettings(res_x, res_y, rotation, effect)
-    camera.start_preview()
-    while True:
-        videocamera = VideoCamera()
-        #create images
-        for i, filename in enumerate(camera.capture_continuous('image{counter}.jpg')):
-            #print(f'{filename} has been taken')
-            #time.sleep(0.1)
-            frame = videocamera.get_frame()
-            yield (b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            if i > 1:
-                #camera.stop_preview()
-                break
-        
 
 @app.route('/stream', methods=['GET','POST'])
 def stream():

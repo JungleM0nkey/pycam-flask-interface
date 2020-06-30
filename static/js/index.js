@@ -14,23 +14,27 @@ function selectcapture(gallery_thumbnail){
 
 function changetheme(theme){
     if(theme == 'dark'){
-        $('body').css('background-image','url(../static/images/invertedbg.png)')
-        $('label').css('color','rgba(255, 255, 255, 0.74)')
-        $('#index-title').css('color','white')
-        $('#archive-title').css('color','rgba(255, 255, 255, 0.561)')
-        $('#settings-title').css('color','rgba(255, 255, 255, 0.561)')
-        $('#selected-capture-date').css('color','rgba(255, 255, 255, 0.74)')
-        $('.thumbnail-date').css('color','rgba(255, 255, 255, 0.74)')
-        $('#change-theme').css('color','white')
-    }else{
-        $('body').css('background-image','url(../static/images/bg.png)')
-        $('label').css('color','black')
-        $('#index-title').css('color','black')
-        $('#archive-title').css('color','rgba(0, 0, 0, 0.431)')
-        $('#settings-title').css('color','rgba(0, 0, 0, 0.431)')
-        $('#selected-capture-date').css('color','black')
-        $('.thumbnail-date').css('color','black')
-        $('#change-theme').css('color','rgba(0, 0, 0, 0.712)')
+        console.log('Setting theme to dark');
+        $('body').css('background-image','url(../static/images/invertedbg.png)');
+        $('label').css('color','rgba(255, 255, 255, 0.74)');
+        $('#index-title').css('color','white');
+        $('#archive-title').css('color','rgba(255, 255, 255, 0.561)');
+        $('#settings-title').css('color','rgba(255, 255, 255, 0.561)');
+        $('#selected-capture-date').css('color','rgba(255, 255, 255, 0.74)');
+        $('.thumbnail-date').css('color','rgba(255, 255, 255, 0.74)');
+        $('#change-theme').css('color','white');
+        $('#open-stream').css('color','white');
+    }else if(theme == 'light'){
+        console.log('Setting theme to light');
+        $('body').css('background-image','url(../static/images/bg.png)');
+        $('label').css('color','black');
+        $('#index-title').css('color','black');
+        $('#archive-title').css('color','rgba(0, 0, 0, 0.431)');
+        $('#settings-title').css('color','rgba(0, 0, 0, 0.431)');
+        $('#selected-capture-date').css('color','black');
+        $('.thumbnail-date').css('color','black');
+        $('#change-theme').css('color','rgba(0, 0, 0, 0.712)');
+        $('#open-stream').css('color','rgba(0, 0, 0, 0.712)');
     }
     savetheme(theme)
 }
