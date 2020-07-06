@@ -1,7 +1,11 @@
 ### Flask web application for accessing the Raspberry Pi v2 Camera Module through a web interface
+### Note: Requires a Raspberry Pi v2 Camera Module
 
 When the app is accessed the camera takes a snapshot and stores it under the static/images folder.
 The app also allows to show a live jpeg stream to mimic a video function.
+
+
+
 
 Setup:
 1. pip install -r requirements.txt
