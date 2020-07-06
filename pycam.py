@@ -6,15 +6,15 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from config import Config
 from forms import SettingsForm
+from pathlib import Path
 import os
 import sys
 
 
 #flask config
 app = Flask(__name__)
-#camera = PiCamera()
-#camera.rotation = 180 #fixes the images being upsidedown
 app.config.from_object(Config)
+basedir = Config.APP_BASEDIR #main directory of the app
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -22,26 +22,17 @@ migrate = Migrate(app, db)
 import models #this is needed to be here able to import $db into models.py
 from models import Image, Settings
 
-class VideoCamera(object):
-    def __init__(self):
-        self.frames = [open(f + '.jpg', 'rb').read() for f in ['/home/pi/pycam/static/images/stream/image1']]
-
-    def get_frame(self):
-        return self.frames[0]
-
 #functions
 def capture():
-    #camera.start_preview()
-    #sleep(2)
     original_date = str(time.asctime())
     date = original_date.replace(' ', '_').replace(':','_')
     filename = f'capture_{date}.jpg'
-    filepath = f'/home/pi/pycam/static/images/captures/{filename}'
+    filepath = Path(f'{basedir}/static/images/captures/{filename}')
     with PiCamera() as camera: 
         #get settings for camera and apply them
         res_x, res_y, rotation, effect = getsettings()
         applycamsettings(camera, res_x, res_y, rotation, effect)
-        camera.capture(filepath)
+        camera.capture(str(filepath))
     return (filename, filepath, original_date)
     #camera.stop_preview()
 
@@ -103,14 +94,14 @@ def gen():
         res_x, res_y, rotation, effect = getsettings()
         applycamsettings(camera, res_x, res_y, rotation, effect)
         camera.start_preview()
+        filepath = Path(f'{basedir}/static/images/stream/')
+        jpg_file = filepath / "image1.jpg"
         while camera.previewing:
-            print('Running gen function')
-            #videocamera = VideoCamera() #gets the last created image
             #create images
-            for i, filename in enumerate(camera.capture_continuous('/home/pi/pycam/static/images/stream/image1.jpg')):
+            for i, filename in enumerate(camera.capture_continuous(str(jpg_file))):
                 #send image
-                #frame = videocamera.get_frame() 
-                frame = open('/home/pi/pycam/static/images/stream/image1.jpg', 'rb').read()
+                #frame = open('/home/pi/pycam/static/images/stream/image1.jpg', 'rb').read()
+                frame = open(jpg_file, 'rb').read()
                 yield (b'--frame\r\n'
                         b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
                 if i >= 0:
