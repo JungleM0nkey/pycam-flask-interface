@@ -1,3 +1,4 @@
 static/images/captures/
 static/images/stream/
 venv/
+__pycache__/
