@@ -3,3 +3,4 @@ static/images/stream/
 venv/
 __pycache__/
 app.backup.db
+app.db
