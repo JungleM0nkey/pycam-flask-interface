@@ -5,7 +5,7 @@ When the app is accessed the camera takes a snapshot and stores it under the sta
 The app also allows to show a live jpeg stream to mimic a video function.
 
 
-
+![alt text](https://i.imgur.com/HZhJSky.png "pycam preview")
 
 Setup:
 1. pip install -r requirements.txt
