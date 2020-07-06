@@ -2,3 +2,4 @@ static/images/captures/
 static/images/stream/
 venv/
 __pycache__/
+app.backup.db
